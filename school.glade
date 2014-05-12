@@ -10,8 +10,8 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
-          <widget class="GtkToggleButton" id="playButton">
-            <property name="label" translatable="yes">togglebutton</property>
+          <widget class="GtkButton" id="playButton">
+            <property name="label" translatable="yes">button</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>

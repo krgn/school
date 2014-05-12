@@ -1,4 +1,4 @@
-module SchoolGui where
+module School.Gui where
 
 import System.Environment 
 
@@ -12,7 +12,7 @@ import Control.Concurrent
 
 data GUI = GUI {
         mainWin :: Window, 
-        playBtn :: ToggleButton,
+        playBtn :: Button,
         statusView :: Label
     }
 
@@ -28,13 +28,23 @@ loadGlade gladepath =
     do Just xml <- xmlNew gladepath
        -- the main window
        mw <- xmlGetWidget xml castToWindow "mainWindow"
-       pBtn <- xmlGetWidget xml castToToggleButton "playButton"
+       pBtn <- xmlGetWidget xml castToButton "playButton"
        sView <- xmlGetWidget xml castToLabel "statusView"
        return $ GUI mw pBtn sView
 
 connectGui gui = do 
         onDestroy (mainWin gui) mainQuit
-        onClicked (playBtn gui) (setTextView gui)
+        onClicked (playBtn gui) (startThread gui)
 
-setTextView gui = do
-    labelSetText (statusView gui) "hello dear"
+startThread gui = do
+    thId <- forkIO (myTask 10)
+
+    return ()
+    where myTask n = do
+              putStrLn $ show n 
+              updateLabel $ show n
+              threadDelay 200
+              if n > 0
+                  then myTask (n - 1)
+                  else return ()
+          updateLabel s = labelSetText (statusView gui) s
