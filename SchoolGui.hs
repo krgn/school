@@ -17,11 +17,12 @@ data GUI = GUI {
     }
 
 main :: FilePath -> IO ()
-main gladepath = withSocketsDo $ 
-     do initGUI
-        gui <- loadGlade gladepath
-        connectGui gui
-        mainGUI
+main gladepath = do 
+    initGUI
+    gui <- loadGlade gladepath
+    connectGui gui
+    widgetShowAll (mainWin gui)
+    mainGUI
 
 loadGlade gladepath = 
     do Just xml <- xmlNew gladepath
