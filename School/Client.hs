@@ -21,7 +21,7 @@ main = withSocketsDo $ do
     listen sock 1
 
     -- mplayer stuff
-    (hand,o,e,pid) <- runInteractiveProcess "mplayer" ["-idle", "-slave"] Nothing Nothing
+    (hand,o,e,pid) <- runInteractiveProcess "mplayer" ["-fs", "-idle", "-slave"] Nothing Nothing
     hSetBinaryMode hand False
     hSetBuffering hand LineBuffering
 
