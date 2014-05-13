@@ -1,8 +1,7 @@
 module School.Gui where
 
-import System.Environment 
-
-import Data.Maybe 
+import Control.Concurrent.Timer
+import Control.Concurrent.Suspend.Lifted
 import Network.Socket(withSocketsDo)
 
 import Graphics.UI.Gtk hiding (disconnect)
@@ -33,18 +32,18 @@ loadGlade gladepath =
        return $ GUI mw pBtn sView
 
 connectGui gui = do 
-        onDestroy (mainWin gui) mainQuit
-        onClicked (playBtn gui) (startThread gui)
+    onDestroy (mainWin gui) mainQuit
+    onClicked (playBtn gui) (startThread gui)
 
 startThread gui = do
-    thId <- forkIO (myTask 10)
+    thid <- forkIO (task 10)
+    yield
 
-    return ()
-    where myTask n = do
-              putStrLn $ show n 
-              updateLabel $ show n
-              threadDelay 200
-              if n > 0
-                  then myTask (n - 1)
-                  else return ()
-          updateLabel s = labelSetText (statusView gui) s
+    where task n = do
+            putStrLn $ "hello " ++ show n
+            threadDelay 1000000
+            if n > 0
+                then task (n - 1)
+                else do thid <- myThreadId
+                        killThread thid
+        
