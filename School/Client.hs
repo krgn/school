@@ -7,11 +7,10 @@ import Network.Socket.ByteString
 import Control.Concurrent
 import qualified Data.ByteString.Char8 as C
 
--- (i,o,e,pid) <- createProcess (proc "mplayer" ["-idle", "-slave"]) { std_out = CreatePipe, std_in = CreatePipe, cwd = "/home/k/src/nsplay_client/" }
---  (i,o,e,pid) <- runInteractiveProcess "mplayer" ["-idle", "-slave"] (Just "/home/k/src/nsplay_client") Nothing
---   hPutStrLn i "loadfile ./ginger.mp4"
--- hFlush!
--- hSetBinaryMode
+-- WARNING: when compiled with -threaded, this program is likely not going
+-- to work. As soon as one writes to the stdin of the forked process, it 
+-- zombifies and any other command with crash this program.
+
 main = withSocketsDo $ do
     -- network stuff
     addrinfos <- getAddrInfo Nothing (Just "localhost") (Just "4000")
