@@ -35,15 +35,16 @@ connectGui gui = do
     onDestroy (mainWin gui) mainQuit
     onClicked (playBtn gui) (startThread gui)
 
+startThread :: GUI -> IO ()
 startThread gui = do
-    thid <- forkIO (task 10)
-    yield
+    -- thid <- forkIO (task 10)
+    repeatedTimer (putStrLn "hello") (sDelay 1)
+    return ()
 
     where task n = do
             putStrLn $ "hello " ++ show n
             threadDelay 1000000
             if n > 0
                 then task (n - 1)
-                else do thid <- myThreadId
-                        killThread thid
+                else killThread =<< myThreadId
         

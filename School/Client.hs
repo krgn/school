@@ -14,7 +14,7 @@ import qualified Data.ByteString.Char8 as C
 -- hSetBinaryMode
 main = withSocketsDo $ do
     -- network stuff
-    addrinfos <- getAddrInfo Nothing (Just "localhost") (Just "3000")
+    addrinfos <- getAddrInfo Nothing (Just "localhost") (Just "4000")
     let serveraddr = head addrinfos
     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
     bindSocket sock (addrAddress serveraddr)
@@ -23,9 +23,12 @@ main = withSocketsDo $ do
     -- mplayer stuff
     (hand,o,e,pid) <- runInteractiveProcess "mplayer" ["-idle", "-slave"] Nothing Nothing
     hSetBinaryMode hand False
+    hSetBuffering hand LineBuffering
 
-    forkIO $ loop sock hand
+    putStrLn "listening for commands"
+    loop sock hand
 
+    -- closing everything down
     sClose sock
     terminateProcess pid
     waitForProcess pid
@@ -35,9 +38,10 @@ loop sock hand = do
     (conn, _) <- accept sock
     str <- recv conn 2048 
     
+    putStr $ "received: " ++ C.unpack str
+    
     -- write command to handler
-    hPutStrLn hand $ C.unpack str
-    hFlush hand
+    hPutStr hand $ C.unpack str
     
     sClose conn
     loop sock hand

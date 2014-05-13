@@ -12,6 +12,10 @@ Build-Depends: network
 
 Data-files: school.glade
 
-Executable: school
-Main-Is: Main.hs
+Executable: school-gui
+Main-Is: Gui.hs
 GHC-Options: -O2 -threaded
+
+Executable: school-daemon
+Main-Is: Client.hs
+GHC-Options: -O2 
