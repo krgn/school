@@ -1,4 +1,4 @@
-module School.Client where
+module School.Daemon where
 
 import System.IO
 import System.Process

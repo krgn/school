@@ -20,5 +20,5 @@ GHC-Options: -O2 -threaded
 -- to work. As soon as one writes to the stdin of the forked process, it 
 -- zombifies and any other command with crash this program.
 Executable: school-daemon
-Main-Is: Client.hs
+Main-Is: Daemon.hs
 GHC-Options: -O2 
