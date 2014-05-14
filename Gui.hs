@@ -5,4 +5,3 @@ import Paths_school(getDataFileName)
 
 main :: IO ()
 main = Gui.main =<< getDataFileName "school.glade"
-                 

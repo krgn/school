@@ -9,6 +9,10 @@ Build-Depends: network
                , bytestring
                , timers
                , suspend
+               , ConfigFile
+               , mtl
+               , MissingH
+               , transformers
 
 Data-files: school.glade
 
