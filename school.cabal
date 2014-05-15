@@ -9,7 +9,8 @@ Build-Depends: network
                , bytestring
                , timers
                , suspend
-               , ConfigFile
+               , aeson  >= 0.7.1.0 
+               , yaml-config
                , mtl
                , MissingH
                , transformers

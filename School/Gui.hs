@@ -3,14 +3,11 @@ module School.Gui where
 import Control.Concurrent.Timer
 import Control.Concurrent.Suspend.Lifted
 import Network.Socket(withSocketsDo)
-import qualified Data.ConfigFile as ConfigFile
+import Data.Yaml.Config (load,subconfig,lookupDefault, lookup)
 
 import Graphics.UI.Gtk hiding (disconnect)
 import Graphics.UI.Gtk.Glade
-import Control.Monad
-import Control.Monad.Error
 import Control.Concurrent
-import Data.Either.Utils
 
 data GUI = GUI {
         mainWin :: Window, 
@@ -31,27 +28,13 @@ data Config = Config {
 
 main :: FilePath -> IO ()
 main gladepath = do 
-    -- read Config
-    cfg <- runErrorT $ do
-        cp <- join $ liftIO $ ConfigFile.readfile ConfigFile.emptyCP "school.cfg"
-
-        duration <- ConfigFile.get cp "DEFAULT" "duration" 
-        let sections = ConfigFile.sections cp 
-
-        return Config {
-                getDuration = duration
-                -- getHosts = hosts
-            }
-
-    let schoolConf = forceEither cfg
-
     -- GUI 
     initGUI
     gui <- loadGlade gladepath
     connectGui gui
     widgetShowAll (mainWin gui)
     mainGUI
-        
+
 loadGlade gladepath = 
     do Just xml <- xmlNew gladepath
        -- the main window
@@ -77,4 +60,7 @@ startThread gui = do
             if n > 0
                 then task (n - 1)
                 else killThread =<< myThreadId
-        
+
+
+readConfig :: IO Config
+readConfig = undefined
