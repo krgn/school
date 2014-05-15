@@ -3,28 +3,17 @@ module School.Gui where
 import Control.Concurrent.Timer
 import Control.Concurrent.Suspend.Lifted
 import Network.Socket(withSocketsDo)
-import Data.Yaml.Config (load,subconfig,lookupDefault, lookup)
 
 import Graphics.UI.Gtk hiding (disconnect)
 import Graphics.UI.Gtk.Glade
 import Control.Concurrent
+import School.Config
 
 data GUI = GUI {
         mainWin :: Window, 
         playBtn :: Button,
         statusView :: Label
     }
-
-data Host = Host {
-        getIP :: String,
-        getPort :: Integer, 
-        getFileName :: String
-    } deriving (Show, Eq)
-
-data Config = Config {
-        getDuration :: Integer,
-        getHosts :: [Host] 
-    } deriving (Show,Eq)
 
 main :: FilePath -> IO ()
 main gladepath = do 
@@ -35,6 +24,7 @@ main gladepath = do
     widgetShowAll (mainWin gui)
     mainGUI
 
+
 loadGlade gladepath = 
     do Just xml <- xmlNew gladepath
        -- the main window
@@ -43,10 +33,12 @@ loadGlade gladepath =
        sView <- xmlGetWidget xml castToLabel "statusView"
        return $ GUI mw pBtn sView
 
+
 connectGui :: GUI -> IO (ConnectId Button)
 connectGui gui = do 
     onDestroy (mainWin gui) mainQuit
     onClicked (playBtn gui) (startThread gui)
+
 
 startThread :: GUI -> IO ()
 startThread gui = do
@@ -60,7 +52,3 @@ startThread gui = do
             if n > 0
                 then task (n - 1)
                 else killThread =<< myThreadId
-
-
-readConfig :: IO Config
-readConfig = undefined
