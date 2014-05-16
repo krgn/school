@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -12,7 +11,7 @@ import Data.Yaml.Config
 
 data Host = Host {
         getIP :: String,
-        getPort :: Integer, 
+        getPort :: String, 
         getFilePath :: String
     } deriving (Show, Eq)
 
@@ -21,17 +20,19 @@ data SchoolConfig = SchoolConfig {
         getHosts :: [Host] 
     } deriving (Show,Eq)
 
+
 readConfig :: IO SchoolConfig
 readConfig = do 
-    config <- load "school.yml"
-    global <- subconfig "global" config
-    servers <- subconfig "servers" config
-    duration <- lookup "duration" global
-    -- get all hosts from the servers section and turn them into Host values
+    config        <- load "school.yml"
+    global        <- subconfig "global" config
+    servers       <- subconfig "servers" config
+    duration      <- lookup "duration" global
     serverConfigs <- mapM (\key -> return =<< subconfig key servers) (keys servers)
-    hosts <- mapM hostFromConfig serverConfigs
+    -- get all hosts from the servers section and turn them into Host values
+    hosts         <- mapM hostFromConfig serverConfigs
         
     return SchoolConfig { getDuration=duration, getHosts=hosts } 
+
 
 hostFromConfig :: Config -> IO Host
 hostFromConfig cfg = do
