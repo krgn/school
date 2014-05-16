@@ -1,5 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -29,10 +28,10 @@ readConfig = do
     servers <- subconfig "servers" config
     duration <- lookup "duration" global
     -- get all hosts from the servers section and turn them into Host values
-    serverConfigs <- mapM (\key -> do return =<< subconfig key servers) (keys servers)
+    serverConfigs <- mapM (\key -> return =<< subconfig key servers) (keys servers)
     hosts <- mapM hostFromConfig serverConfigs
         
-    return $ SchoolConfig { getDuration=duration, getHosts=hosts } 
+    return SchoolConfig { getDuration=duration, getHosts=hosts } 
 
 hostFromConfig :: Config -> IO Host
 hostFromConfig cfg = do
@@ -40,9 +39,8 @@ hostFromConfig cfg = do
     filepath <- lookup "filepath" cfg
     port <- lookup "port" cfg
 
-    return $ Host {
+    return Host {
         getIP = ip
         , getFilePath = filepath
         , getPort = port
     }
-            
