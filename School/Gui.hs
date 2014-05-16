@@ -1,17 +1,21 @@
 module School.Gui where
 
-import Control.Concurrent.Timer
-import Control.Concurrent.Suspend.Lifted
 import Network.Socket(withSocketsDo)
-
 import Graphics.UI.Gtk hiding (disconnect)
 import Graphics.UI.Gtk.Glade
 import Control.Concurrent
+import Data.IORef
 import School.Config
+
+data App = App {
+        appGui :: GUI,
+        appCfg :: SchoolConfig
+    }
 
 data GUI = GUI {
         mainWin :: Window, 
         playBtn :: Button,
+        stopBtn :: Button,
         statusView :: Label
     }
 
@@ -19,8 +23,12 @@ main :: FilePath -> IO ()
 main gladepath = do 
     -- GUI 
     initGUI
+
     gui <- loadGlade gladepath
-    connectGui gui
+    cfg <- readConfig
+
+    connectGui $ App { appGui=gui, appCfg=cfg }
+
     widgetShowAll (mainWin gui)
     mainGUI
 
@@ -30,25 +38,31 @@ loadGlade gladepath =
        -- the main window
        mw    <- xmlGetWidget xml castToWindow "mainWindow"
        pBtn  <- xmlGetWidget xml castToButton "playButton"
+       sBtn  <- xmlGetWidget xml castToButton "stopButton"
        sView <- xmlGetWidget xml castToLabel "statusView"
-       return $ GUI mw pBtn sView
+       return $ GUI mw pBtn sBtn sView
 
+threadRef :: IO (IORef (Maybe ThreadId))
+threadRef = newIORef Nothing
 
-connectGui :: GUI -> IO (ConnectId Button)
-connectGui gui = do 
-    onDestroy (mainWin gui) mainQuit
-    onClicked (playBtn gui) (startThread gui)
+connectGui :: App -> IO () 
+connectGui app = do 
+    thread <- threadRef 
 
+    onDestroy (mainWin $ appGui app) mainQuit
+    onClicked (playBtn $ appGui app) $ do
+        thId <- forkIO $ uselessTask 0 
+        writeIORef thread (Just thId)
+        
+    onClicked (stopBtn $ appGui app) $ do
+        thId <- readIORef thread
+        case thId of
+            Nothing -> putStrLn "oh, not thread id found!"
+            Just i -> killThread i
 
-startThread :: GUI -> IO ()
-startThread gui = do
-    -- thid <- forkIO (task 10)
-    repeatedTimer (putStrLn "hello") (sDelay 1)
     return ()
 
-    where task n = do
+    where uselessTask n = do
             putStrLn $ "hello " ++ show n
             threadDelay 1000000
-            if n > 0
-                then task (n - 1)
-                else killThread =<< myThreadId
+            uselessTask $ n + 1

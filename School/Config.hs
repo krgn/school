@@ -9,7 +9,6 @@ module School.Config
     , readConfig) where 
 
 import Prelude hiding (lookup)
-import Data.Word (Word16)
 import Data.Yaml.Config
 
 data Host = Host {
