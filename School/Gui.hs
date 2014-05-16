@@ -156,6 +156,5 @@ sendMessage msg host = withSocketsDo $ do
     hPutStrLn hock msg
     hFlush hock
 
-    sClose sock
     hClose hock
 
