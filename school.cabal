@@ -10,6 +10,7 @@ Build-Depends: network
                , timers
                , suspend
                , aeson
+               , unix
                , yaml-config
                , mtl
                , MissingH

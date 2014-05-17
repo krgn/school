@@ -1,11 +1,14 @@
 module School.Daemon where
 
 import System.IO
-import System.Process
+import Data.Bits
+import System.Posix.Files
 import Network.Socket hiding (recv)
 import Network.Socket.ByteString 
 import Control.Concurrent
 import qualified Data.ByteString.Char8 as C
+import Control.Applicative
+import qualified GHC.IO.Handle.FD
 
 -- WARNING: when compiled with -threaded, this program is likely not going
 -- to work. As soon as one writes to the stdin of the forked process, it 
@@ -20,18 +23,25 @@ main = withSocketsDo $ do
     listen sock 1
 
     -- mplayer stuff
-    (hand,o,e,pid) <- runInteractiveProcess "mplayer" ["-fs", "-idle", "-slave"] Nothing Nothing
-    hSetBinaryMode hand False
-    hSetBuffering hand LineBuffering
+    -- (hand,o,e,pid) <- runInteractiveCommand "mplayer -fs -idle -slave"
+    -- hSetBinaryMode hand False
+    -- hSetBuffering hand LineBuffering
+    
+    -- createNamedPipe "/tmp/mplayer.fifo" mode
+    hand <- openFIFO "/tmp/mplayer.fifo"
 
     putStrLn "listening for commands"
     loop sock hand
+    putStrLn "done.. commands"
 
     -- closing everything down
     sClose sock
-    terminateProcess pid
-    waitForProcess pid
+    -- terminateProcess pid
+    -- waitForProcess pid
     return ()
+
+    where 
+        mode = ownerWriteMode .|. namedPipeMode 
 
 loop sock hand = do 
     (conn, _) <- accept sock
@@ -41,7 +51,11 @@ loop sock hand = do
     
     -- write command to handler
     hPutStr hand $ C.unpack str
+    hFlush hand
     
     sClose conn
     loop sock hand
+  
+
+openFIFO path = GHC.IO.Handle.FD.openFile path WriteMode
 
