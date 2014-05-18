@@ -1,6 +1,7 @@
 module School.Daemon where
 
 import System.IO
+import System.Process
 import Data.Bits
 import System.Posix.Files
 import Network.Socket hiding (recv)
@@ -16,19 +17,19 @@ import qualified GHC.IO.Handle.FD
 
 main = withSocketsDo $ do
     -- network stuff
-    addrinfos <- getAddrInfo Nothing (Just "localhost") (Just "4000")
+    addrinfos <- getAddrInfo Nothing (Just "0.0.0.0") (Just "4000")
     let serveraddr = head addrinfos
     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
     bindSocket sock (addrAddress serveraddr)
     listen sock 1
 
-    -- mplayer stuff
-    -- (hand,o,e,pid) <- runInteractiveCommand "mplayer -fs -idle -slave"
-    -- hSetBinaryMode hand False
-    -- hSetBuffering hand LineBuffering
+    --mplayer stuff
+    (hand,o,e,pid) <- runInteractiveCommand "mplayer -fs -idle -slave"
+
+    mapM_ (\h -> do hSetBinaryMode h False; hSetBuffering h LineBuffering) [hand, o, e]
     
-    -- createNamedPipe "/tmp/mplayer.fifo" mode
-    hand <- openFIFO "/tmp/mplayer.fifo"
+    forkIO $ emptyHandle "stdout" o
+    forkIO $ emptyHandle "stderr" e
 
     putStrLn "listening for commands"
     loop sock hand
@@ -41,7 +42,12 @@ main = withSocketsDo $ do
     return ()
 
     where 
-        mode = ownerWriteMode .|. namedPipeMode 
+        emptyHandle debug o = do
+            out <- hGetLine o
+            putStrLn $ debug ++ ": " ++ out
+            emptyHandle debug o
+
+            
 
 loop sock hand = do 
     (conn, _) <- accept sock
@@ -57,5 +63,5 @@ loop sock hand = do
     loop sock hand
   
 
-openFIFO path = GHC.IO.Handle.FD.openFile path WriteMode
+-- openFIFO path = GHC.IO.Handle.FD.openFile path WriteMode
 

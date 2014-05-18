@@ -18,7 +18,7 @@ data GUI = GUI {
         mainWin :: Window, 
         playBtn :: Button,
         stopBtn :: Button,
-        resetBtn :: Button,
+        verboseBtn :: Button,
         jumpToStartBtn :: Button,
         jumpToMiddleBtn :: Button,
         jumpToEndBtn :: Button,
@@ -51,7 +51,7 @@ loadGlade gladepath =
        mw     <- xmlGetWidget xml castToWindow "mainWindow"
        pBtn   <- xmlGetWidget xml castToButton "playButton"
        sBtn   <- xmlGetWidget xml castToButton "stopButton"
-       rBtn   <- xmlGetWidget xml castToButton "resetButton"
+       rBtn   <- xmlGetWidget xml castToButton "verboseButton"
        jtsBtn <- xmlGetWidget xml castToButton "jumpToStart"
        jtmBtn <- xmlGetWidget xml castToButton "jumpToMiddle"
        jteBtn <- xmlGetWidget xml castToButton "jumpToEnd"
@@ -65,10 +65,14 @@ loadGlade gladepath =
 threadRef :: IO (IORef (Maybe ThreadId))
 threadRef = newIORef Nothing
 
+osdRef :: IO (IORef Bool)
+osdRef = newIORef False
 
 connectGui :: App -> IO () 
 connectGui app = do 
     thread <- threadRef 
+    osd <- osdRef
+
     let hosts = getHosts $ appCfg app
 
     onDestroy (mainWin $ appGui app) mainQuit
@@ -88,10 +92,8 @@ connectGui app = do
             Nothing -> putStrLn "oh, no ThreadId found!"
             Just i -> killThread i
 
-    onClicked (resetBtn $ appGui app) $
-        void $ forkIO $ do
-            stopAll hosts
-            startAll hosts
+    onClicked (verboseBtn $ appGui app) $
+        void $ forkIO $ showTimecode osd hosts
 
     onClicked (jumpToStartBtn $ appGui app) $
         void $ forkIO $ seekTo 0 hosts
@@ -139,6 +141,20 @@ seekTo p = mapM_ (void . seek p)
             let cmd = "seek " ++ show p ++ " 1"
             void $ sendMessage cmd host
 
+showTimecode :: IORef Bool -> [Host] -> IO ()
+showTimecode t hosts = do
+    toggleOsd t
+    osd <- readIORef t
+    mapM_ (void . timecode osd) hosts
+    where 
+        timecode t host = do
+            let cmd = if t then "osd 3" else "osd 0"
+            void $ sendMessage cmd host
+
+toggleOsd :: IORef Bool -> IO ()
+toggleOsd ref = do
+    osd <- readIORef ref
+    writeIORef ref (not osd)
 
 sendMessage :: String -> Host -> IO ()
 sendMessage msg host = withSocketsDo $ do
