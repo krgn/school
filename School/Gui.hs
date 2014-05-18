@@ -1,6 +1,7 @@
 module School.Gui where
 
 import System.IO
+import System.IO.Error
 import Network.Socket
 import Graphics.UI.Gtk hiding (disconnect)
 import Graphics.UI.Gtk.Glade
@@ -8,6 +9,8 @@ import Control.Concurrent
 import Data.IORef
 import School.Config
 import Control.Monad(void)
+import Control.Exception
+import Prelude hiding (catch)
 
 data App = App {
         appGui :: GUI,
@@ -163,14 +166,19 @@ sendMessage msg host = withSocketsDo $ do
 
     sock <- socket (addrFamily servAddr) Stream defaultProtocol
 
-    connect sock (addrAddress servAddr) 
+    void $ forkIO $ catchIOError (connAndSend sock (addrAddress servAddr)) handler
 
-    hock <- socketToHandle sock WriteMode
-    -- set to block buffering, as we use flush to get out our message asap
-    hSetBuffering hock (BlockBuffering Nothing)
+    where   
+        handler e = (putStrLn "error!") >> return ()
 
-    hPutStrLn hock msg
-    hFlush hock
+        connAndSend sock addr = do
+            connect sock addr
+            hock <- socketToHandle sock WriteMode
+            -- set to block buffering, as we use flush to get out our message asap
+            hSetBuffering hock (BlockBuffering Nothing)
 
-    hClose hock
+            hPutStrLn hock msg
+            hFlush hock
+
+            hClose hock
 
