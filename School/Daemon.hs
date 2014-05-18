@@ -49,8 +49,8 @@ main = withSocketsDo $ do
 
     -- closing everything down
     sClose sock
-    -- terminateProcess pid
-    -- waitForProcess pid
+    terminateProcess pid
+    waitForProcess pid
     return ()
 
     where 
@@ -74,6 +74,3 @@ loop sock hand = do
     sClose conn
     loop sock hand
   
-
--- openFIFO path = GHC.IO.Handle.FD.openFile path WriteMode
-
