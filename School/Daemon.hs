@@ -23,8 +23,20 @@ main = withSocketsDo $ do
     bindSocket sock (addrAddress serveraddr)
     listen sock 1
 
+    let cmd = foldr (\ a b -> a ++ " " ++ b) "" l
+                where l = [ "DISPLAY=:0",
+                        "mplayer", 
+                        "-fs", "-idle", "-slave",
+                        "-framedrop", 
+                        "-really-quiet",
+                        "-ao alsa",
+                        "-vo vdpau",
+                        "-channels 6",
+                        "-ontop",
+                        "-aspect 16:9" ]
+
     --mplayer stuff
-    (hand,o,e,pid) <- runInteractiveCommand "mplayer -fs -idle -slave"
+    (hand,o,e,pid) <- runInteractiveCommand cmd
 
     mapM_ (\h -> do hSetBinaryMode h False; hSetBuffering h LineBuffering) [hand, o, e]
     
