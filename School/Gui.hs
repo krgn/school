@@ -27,6 +27,7 @@ data GUI = GUI {
 
         quitBtn :: MenuItem,
         aboutBtn :: MenuItem,
+        refreshBtn :: MenuItem, 
 
         statusView :: Label,
         progBar :: ProgressBar
@@ -60,10 +61,24 @@ loadGlade gladepath =
        jteBtn <- xmlGetWidget xml castToButton "jumpToEnd"
        qBtn   <- xmlGetWidget xml castToMenuItem "quitButton"
        aBtn   <- xmlGetWidget xml castToMenuItem "aboutDialog"
+       reBtn   <- xmlGetWidget xml castToMenuItem "refreshButton"
        sView  <- xmlGetWidget xml castToLabel "statusView"
        pBar   <- xmlGetWidget xml castToProgressBar "showProgress"
 
-       return $ GUI mw pBtn sBtn rBtn jtsBtn jtmBtn jteBtn qBtn aBtn sView pBar
+       return  GUI { 
+               mainWin           = mw
+               , playBtn         = pBtn
+               , stopBtn         = sBtn
+               , verboseBtn      = rBtn
+               , jumpToStartBtn  = jtsBtn
+               , jumpToMiddleBtn = jtmBtn
+               , jumpToEndBtn    = jteBtn
+               , quitBtn         = qBtn
+               , aboutBtn        = aBtn
+               , refreshBtn      = reBtn
+               , statusView      = sView
+               , progBar         = pBar 
+           }
 
 
 threadRef :: IO (IORef (Maybe ThreadId))
@@ -72,53 +87,56 @@ threadRef = newIORef Nothing
 osdRef :: IO (IORef Bool)
 osdRef = newIORef False
 
+appRef :: App -> IO (IORef App)
+appRef = newIORef
+
 connectGui :: App -> IO () 
-connectGui app = do 
+connectGui a = do 
     thread <- threadRef 
     osd <- osdRef
+    app <- appRef a
 
-    let hosts = getHosts $ appCfg app
+    -- or, liftM (getHosts . appCfg) (readIORef app)
+    hosts <- readIORef app >>= return . getHosts . appCfg
+    gui <- readIORef app >>= return . appGui
 
-    onDestroy (mainWin $ appGui app) mainQuit
+    onDestroy (mainWin gui) mainQuit
 
-    on (quitBtn $ appGui app) menuItemActivate mainQuit
+    on (quitBtn gui) menuItemActivate mainQuit
 
-    -- onActivateItem (aboutBtn $ appGui app) $ do 
-    --     dialog <- aboutDialogNew 
-    --     return ()
- 
-    onClicked (playBtn $ appGui app) $ do
+    on (refreshBtn gui) menuItemActivate $ do
+        stop hosts thread
+        curr <- readIORef app
+        newCfg <- readConfig
+        writeIORef app $ curr { appCfg=newCfg }
+
+    onClicked (playBtn gui) $ do
         thId <- forkIO $ waitingTask osd 0 app
         writeIORef thread (Just thId)
         
-    onClicked (stopBtn $ appGui app) $ do
-        forkIO $ stopAll hosts
-        thId <- readIORef thread
-        case thId of
-            Nothing -> putStrLn "oh, no ThreadId found!"
-            Just i -> killThread i
+    onClicked (stopBtn gui) $ stop hosts thread
 
-    onClicked (verboseBtn $ appGui app) $
+    onClicked (verboseBtn gui) $
         void $ forkIO $ do 
             toggleOsd osd
             showTimecode osd hosts
 
-    onClicked (jumpToStartBtn $ appGui app) $
+    onClicked (jumpToStartBtn gui) $
         void $ forkIO $ seekTo 0 hosts
             
-    onClicked (jumpToMiddleBtn $ appGui app) $
+    onClicked (jumpToMiddleBtn gui) $
         void $ forkIO $ seekTo 50 hosts
             
-    onClicked (jumpToEndBtn $ appGui app) $ 
+    onClicked (jumpToEndBtn gui) $ 
         void $ forkIO $ seekTo 99 hosts
             
     return ()
 
     where 
-        waitingTask :: IORef Bool -> Int -> App -> IO ()
+        waitingTask :: IORef Bool -> Int -> IORef App -> IO ()
         waitingTask o i a = do 
-            let hosts = getHosts $ appCfg a
-            let duration = fromIntegral $ getDuration $ appCfg a
+            hosts <- liftM (getHosts . appCfg) (readIORef a)
+            duration <- liftM (fromIntegral . getDuration . appCfg) (readIORef a)
 
             postGUIAsync $ updateTimecode i a
             postGUIAsync $ updateProgrss i a
@@ -130,19 +148,27 @@ connectGui app = do
             threadDelay 1000000
             waitingTask o ((i + 1) `mod` duration) a
 
+stop :: [Host] -> IORef (Maybe ThreadId) -> IO ()
+stop hosts thread = do 
+    forkIO $ stopAll hosts
+    thId <- readIORef thread
+    case thId of
+        Nothing -> putStrLn "oh, no ThreadId found!"
+        Just i -> do killThread i
+                     writeIORef thread Nothing 
 
-updateProgrss :: Int -> App -> IO ()
+updateProgrss :: Int -> IORef App -> IO ()
 updateProgrss i app = do
-    let bar = progBar (appGui app)
-    let duration = fromIntegral $ getDuration (appCfg app)
+    bar <- liftM (progBar . appGui) (readIORef app)
+    duration <- liftM (fromIntegral . getDuration . appCfg) (readIORef app)
     let total = (1.0 /  duration) * fromIntegral i
 
     progressBarSetFraction bar total
 
 
-updateTimecode :: Int -> App -> IO ()
+updateTimecode :: Int -> IORef App -> IO ()
 updateTimecode i app = do
-    let label = statusView (appGui app)
+    label <- liftM (statusView . appGui) (readIORef app)
     labelSetMarkup label str
     
     where
