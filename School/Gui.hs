@@ -139,7 +139,8 @@ updateTimecode i app = do
         hours = i `div` 60 `div` 60
         minutes = i `div` 60
         seconds = i `mod` 60
-        str = concat [ "<span font='50' font_weight='heavy'>"
+        str = concat [ 
+            "<span font='50' font_weight='heavy'>"
             , printf "%02d:%02d:%02d" hours minutes seconds 
             , "</span>" ]
 
