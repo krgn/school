@@ -11,6 +11,8 @@ import School.Config
 import Control.Monad(void)
 import Control.Exception
 import Prelude hiding (catch)
+import Text.Printf
+import Control.Monad
 
 data App = App {
         appGui :: GUI,
@@ -79,13 +81,14 @@ connectGui app = do
     let hosts = getHosts $ appCfg app
 
     onDestroy (mainWin $ appGui app) mainQuit
-    -- onActivateItem (quitBtn $ appGui app) mainQuit
+    onActivateItem (quitBtn $ appGui app) mainQuit
+
     -- onActivateItem (aboutBtn $ appGui app) $ do 
     --     dialog <- aboutDialogNew 
     --     return ()
  
     onClicked (playBtn $ appGui app) $ do
-        thId <- forkIO $ waitingTask app
+        thId <- forkIO $ waitingTask osd 0 app
         writeIORef thread (Just thId)
         
     onClicked (stopBtn $ appGui app) $ do
@@ -96,7 +99,9 @@ connectGui app = do
             Just i -> killThread i
 
     onClicked (verboseBtn $ appGui app) $
-        void $ forkIO $ showTimecode osd hosts
+        void $ forkIO $ do 
+            toggleOsd osd
+            showTimecode osd hosts
 
     onClicked (jumpToStartBtn $ appGui app) $
         void $ forkIO $ seekTo 0 hosts
@@ -110,15 +115,33 @@ connectGui app = do
     return ()
 
     where 
-        waitingTask :: App -> IO ()
-        waitingTask a = do
+        waitingTask :: IORef Bool -> Int -> App -> IO ()
+        waitingTask o i a = do 
             let hosts = getHosts $ appCfg a
-            let duration = getDuration $ appCfg a
+            let duration = fromIntegral $ getDuration $ appCfg a
 
-            startAll hosts
+            postGUIAsync $ updateTimecode i a
 
-            threadDelay (1000000 * fromIntegral duration)
-            waitingTask a
+            when (i == 0) $ do 
+                startAll hosts
+                showTimecode o hosts
+
+            threadDelay 1000000
+            waitingTask o ((i + 1) `mod` duration) a
+
+
+updateTimecode :: Int -> App -> IO ()
+updateTimecode i app = do
+    let label = statusView (appGui app)
+    labelSetMarkup label str
+    
+    where
+        hours = i `div` 60 `div` 60
+        minutes = i `div` 60
+        seconds = i `mod` 60
+        str = concat [ "<span font='50' font_weight='heavy'>"
+            , printf "%02d:%02d:%02d" hours minutes seconds 
+            , "</span>" ]
 
 
 startAll :: [Host] -> IO ()
@@ -146,7 +169,6 @@ seekTo p = mapM_ (void . seek p)
 
 showTimecode :: IORef Bool -> [Host] -> IO ()
 showTimecode t hosts = do
-    toggleOsd t
     osd <- readIORef t
     mapM_ (void . timecode osd) hosts
     where 
@@ -166,10 +188,11 @@ sendMessage msg host = withSocketsDo $ do
 
     sock <- socket (addrFamily servAddr) Stream defaultProtocol
 
-    void $ forkIO $ catchIOError (connAndSend sock (addrAddress servAddr)) handler
+    void $ forkIO $ 
+        catchIOError (connAndSend sock (addrAddress servAddr)) handler
 
     where   
-        handler e = (putStrLn "error!") >> return ()
+        handler e = putStrLn "error!" >> return ()
 
         connAndSend sock addr = do
             connect sock addr
