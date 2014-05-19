@@ -269,12 +269,24 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="statusView">
+              <widget class="GtkAlignment" id="alignment7">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">&lt;span font='50' font_weight='heavy'&gt;00:00:00&lt;/span&gt;</property>
-                <property name="use_markup">True</property>
-                <property name="single_line_mode">True</property>
+                <property name="xalign">1</property>
+                <property name="yalign">1</property>
+                <property name="top_padding">5</property>
+                <property name="bottom_padding">5</property>
+                <property name="left_padding">5</property>
+                <property name="right_padding">5</property>
+                <child>
+                  <widget class="GtkLabel" id="/">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">&lt;span  font='50' font_weight='heavy'&gt;00:00:00&lt;/span&gt;
+</property>
+                    <property name="use_markup">True</property>
+                  </widget>
+                </child>
               </widget>
               <packing>
                 <property name="expand">True</property>
