@@ -31,7 +31,8 @@ data GUI = GUI {
         quitBtn :: MenuItem,
         aboutBtn :: MenuItem,
 
-        statusView :: Label
+        statusView :: Label,
+        progBar :: ProgressBar
     }
 
 
@@ -63,8 +64,9 @@ loadGlade gladepath =
        qBtn   <- xmlGetWidget xml castToMenuItem "quitButton"
        aBtn   <- xmlGetWidget xml castToMenuItem "aboutDialog"
        sView  <- xmlGetWidget xml castToLabel "statusView"
+       pBar   <- xmlGetWidget xml castToProgressBar "showProgress"
 
-       return $ GUI mw pBtn sBtn rBtn jtsBtn jtmBtn jteBtn qBtn aBtn sView
+       return $ GUI mw pBtn sBtn rBtn jtsBtn jtmBtn jteBtn qBtn aBtn sView pBar
 
 
 threadRef :: IO (IORef (Maybe ThreadId))
@@ -121,6 +123,7 @@ connectGui app = do
             let duration = fromIntegral $ getDuration $ appCfg a
 
             postGUIAsync $ updateTimecode i a
+            postGUIAsync $ updateProgrss i a
 
             when (i == 0) $ do 
                 startAll hosts
@@ -128,6 +131,16 @@ connectGui app = do
 
             threadDelay 1000000
             waitingTask o ((i + 1) `mod` duration) a
+
+
+updateProgrss :: Int -> App -> IO ()
+updateProgrss i app = do
+    let bar = progBar (appGui app)
+    let duration = fromIntegral $ getDuration (appCfg app)
+    let total = (1.0 /  duration) * (fromIntegral i)
+
+    putStrLn $ show total
+    progressBarSetFraction bar total
 
 
 updateTimecode :: Int -> App -> IO ()

@@ -279,7 +279,7 @@
                 <property name="left_padding">5</property>
                 <property name="right_padding">5</property>
                 <child>
-                  <widget class="GtkLabel" id="/">
+                  <widget class="GtkLabel" id="statusView">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">&lt;span  font='50' font_weight='heavy'&gt;00:00:00&lt;/span&gt;
