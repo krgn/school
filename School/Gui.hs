@@ -8,9 +8,6 @@ import Graphics.UI.Gtk.Glade
 import Control.Concurrent
 import Data.IORef
 import School.Config
-import Control.Monad(void)
-import Control.Exception
-import Prelude hiding (catch)
 import Text.Printf
 import Control.Monad
 
@@ -39,12 +36,12 @@ data GUI = GUI {
 main :: FilePath -> IO ()
 main gladepath = do 
     -- GUI 
-    initGUI
+    _ <- initGUI
 
     gui <- loadGlade gladepath
     cfg <- readConfig
 
-    connectGui $ App { appGui=gui, appCfg=cfg }
+    connectGui App { appGui=gui, appCfg=cfg }
 
     widgetShowAll (mainWin gui)
     mainGUI
@@ -83,7 +80,8 @@ connectGui app = do
     let hosts = getHosts $ appCfg app
 
     onDestroy (mainWin $ appGui app) mainQuit
-    onActivateItem (quitBtn $ appGui app) mainQuit
+
+    on (quitBtn $ appGui app) menuItemActivate mainQuit
 
     -- onActivateItem (aboutBtn $ appGui app) $ do 
     --     dialog <- aboutDialogNew 
@@ -137,9 +135,8 @@ updateProgrss :: Int -> App -> IO ()
 updateProgrss i app = do
     let bar = progBar (appGui app)
     let duration = fromIntegral $ getDuration (appCfg app)
-    let total = (1.0 /  duration) * (fromIntegral i)
+    let total = (1.0 /  duration) * fromIntegral i
 
-    putStrLn $ show total
     progressBarSetFraction bar total
 
 
@@ -175,15 +172,15 @@ stopAll = mapM_ (void . stop)
 
 
 seekTo :: Integer -> [Host] -> IO ()
-seekTo p = mapM_ (void . seek p)
+seekTo t = mapM_ (void . seek t)
     where 
         seek p host = do
             let cmd = "seek " ++ show p ++ " 1"
             void $ sendMessage cmd host
 
 showTimecode :: IORef Bool -> [Host] -> IO ()
-showTimecode t hosts = do
-    osd <- readIORef t
+showTimecode b hosts = do
+    osd <- readIORef b
     mapM_ (void . timecode osd) hosts
     where 
         timecode t host = do
@@ -206,7 +203,7 @@ sendMessage msg host = withSocketsDo $ do
         catchIOError (connAndSend sock (addrAddress servAddr)) handler
 
     where   
-        handler e = putStrLn "error!" >> return ()
+        handler _ = void $ putStrLn "error!"
 
         connAndSend sock addr = do
             connect sock addr
