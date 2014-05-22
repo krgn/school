@@ -3,15 +3,19 @@
 
 module School.Config 
     (Host(..)
+    , Latency
     , SchoolConfig(..)
     , readConfig) where 
 
 import Prelude hiding (lookup)
 import Data.Yaml.Config
 
+type Latency = Int
+
 data Host = Host {
         getIP :: String,
         getPort :: String, 
+        getLatency :: Latency,
         getFilePath :: String
     } deriving (Show, Eq)
 
@@ -27,21 +31,26 @@ readConfig = do
     global        <- subconfig "global" config
     servers       <- subconfig "servers" config
     duration      <- lookup "duration" global
+    latency       <- lookup "latency" global
     serverConfigs <- mapM (\key -> return =<< subconfig key servers) (keys servers)
     -- get all hosts from the servers section and turn them into Host values
-    hosts         <- mapM hostFromConfig serverConfigs
+    hosts         <- mapM (hostFromConfig latency) serverConfigs
         
-    return SchoolConfig { getDuration=duration, getHosts=hosts } 
+    return SchoolConfig { 
+        getHosts   = hosts
+        , getDuration  = duration
+        } 
 
 
-hostFromConfig :: Config -> IO Host
-hostFromConfig cfg = do
-    ip <- lookup "ip" cfg
+hostFromConfig :: Latency -> Config -> IO Host
+hostFromConfig latency cfg = do
+    ip       <- lookup "ip" cfg
     filepath <- lookup "filepath" cfg
-    port <- lookup "port" cfg
+    port     <- lookup "port" cfg
 
     return Host {
-        getIP = ip
+        getIP         = ip
+        , getLatency  = latency
         , getFilePath = filepath
-        , getPort = port
+        , getPort     = port
     }
