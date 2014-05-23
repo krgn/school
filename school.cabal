@@ -4,11 +4,10 @@ Build-type: Simple
 Build-Depends: network
                , base
                , gtk
+               , unix-time
                , glade
                , process
                , bytestring
-               , timers
-               , suspend
                , aeson
                , unix
                , yaml-config
@@ -27,4 +26,4 @@ GHC-Options: -O2 -threaded
 -- zombifies and any other command with crash this program.
 Executable: school-daemon
 Main-Is: Daemon.hs
-GHC-Options: -O2 
+GHC-Options: -O2

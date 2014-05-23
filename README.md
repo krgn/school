@@ -2,10 +2,11 @@ School
 ------
 
 ## TODO:
+- restart command for daemons (with button)
 - config section for daemon 
     + mplayer config options
-- quit menu item
-- reload config menu item
+-̶ ̶q̶u̶i̶t̶ ̶m̶e̶n̶u̶ ̶i̶t̶e̶m̶
+-̶ ̶r̶e̶l̶o̶a̶d̶ ̶c̶o̶n̶f̶i̶g̶ ̶m̶e̶n̶u̶ ̶i̶t̶e̶m̶
 - monit config 
 - ping status for each host in gui
 -̶ ̶x̶m̶o̶n̶a̶d̶ ̶c̶o̶n̶f̶i̶g̶
