@@ -2,12 +2,13 @@ module School.Gui where
 
 import System.IO
 import System.IO.Error
-import Network.Socket
 import Graphics.UI.Gtk hiding (disconnect)
 import Graphics.UI.Gtk.Glade
 import Control.Concurrent
 import Data.IORef
 import School.Config
+import School.Time
+import School.Network
 import Text.Printf
 import Control.Monad
 
@@ -148,6 +149,7 @@ connectGui a = do
             threadDelay 1000000
             waitingTask o ((i + 1) `mod` duration) a
 
+
 stop :: [Host] -> IORef (Maybe ThreadId) -> IO ()
 stop hosts thread = do 
     forkIO $ stopAll hosts
@@ -180,65 +182,4 @@ updateTimecode i app = do
             , printf "%02d:%02d:%02d" hours minutes seconds 
             , "</span>" ]
 
-
-startAll :: [Host] -> IO ()
-startAll = mapM_ (void . start) 
-    where 
-        start host = do
-            let cmd = "loadfile " ++ getFilePath host
-            void $ sendMessage cmd host
-
-
-stopAll :: [Host] -> IO ()
-stopAll = mapM_ (void . stop) 
-    where 
-        stop host = do
-            let cmd = "stop"
-            void $ sendMessage cmd host
-
-
-seekTo :: Integer -> [Host] -> IO ()
-seekTo t = mapM_ (void . seek t)
-    where 
-        seek p host = do
-            let cmd = "seek " ++ show p ++ " 1"
-            void $ sendMessage cmd host
-
-showTimecode :: IORef Bool -> [Host] -> IO ()
-showTimecode b hosts = do
-    osd <- readIORef b
-    mapM_ (void . timecode osd) hosts
-    where 
-        timecode t host = do
-            let cmd = if t then "osd 3" else "osd 0"
-            void $ sendMessage cmd host
-
-toggleOsd :: IORef Bool -> IO ()
-toggleOsd ref = do
-    osd <- readIORef ref
-    writeIORef ref (not osd)
-
-sendMessage :: String -> Host -> IO ()
-sendMessage msg host = withSocketsDo $ do
-    addrInfos <- getAddrInfo Nothing (Just $ getIP host) (Just $ getPort host)
-    let servAddr = head addrInfos
-
-    sock <- socket (addrFamily servAddr) Stream defaultProtocol
-
-    void $ forkIO $ 
-        catchIOError (connAndSend sock (addrAddress servAddr)) handler
-
-    where   
-        handler _ = void $ putStrLn "error!"
-
-        connAndSend sock addr = do
-            connect sock addr
-            hock <- socketToHandle sock WriteMode
-            -- set to block buffering, as we use flush to get out our message asap
-            hSetBuffering hock (BlockBuffering Nothing)
-
-            hPutStrLn hock msg
-            hFlush hock
-
-            hClose hock
 

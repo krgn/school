@@ -118,21 +118,6 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkButton" id="verboseButton">
-                <property name="label">gtk-dialog-info</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="use_stock">True</property>
-              </widget>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="right_attach">3</property>
-                <property name="y_options">GTK_EXPAND</property>
-              </packing>
-            </child>
-            <child>
               <widget class="GtkButton" id="jumpToStart">
                 <property name="label" translatable="yes">jump to 0%</property>
                 <property name="visible">True</property>
@@ -177,6 +162,20 @@
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
                 <property name="y_options">GTK_EXPAND</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkCheckButton" id="verboseButton">
+                <property name="label" translatable="yes">Show Timecode</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="use_action_appearance">False</property>
+                <property name="draw_indicator">True</property>
+              </widget>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="right_attach">3</property>
               </packing>
             </child>
           </widget>

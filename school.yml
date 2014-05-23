@@ -1,28 +1,29 @@
 global: 
-    duration: 120
+    duration: 12
+    latency: 3000
 
 servers:
     host1: 
         port: "4000"
-        ip: 192.168.1.21
-        filepath: /home/school/school/files/1_SCHOOL_SHORT.mkv
-    host2: 
-        port: "4000"
-        ip: 192.168.1.22
-        filepath: /home/school/school/files/2_SCHOOL_SHORT.mkv
-    host3: 
-        port: "4000"
-        ip: 192.168.1.23
-        filepath: /home/school/school/files/3_SCHOOL_SHORT.mkv
-    host4: 
-        port: "4000"
-        ip: 192.168.1.24
-        filepath: /home/school/school/files/4_SCHOOL_SHORT.mkv
-    host5: 
-        port: "4000"
-        ip: 192.168.1.25
-        filepath: /home/school/school/files/5_SCHOOL_SHORT.mkv
-    host7: 
-        port: "4000"
-        ip: 192.168.1.27
-        filepath: /home/school/school/files/7_SCHOOL_SHORT.mkv
+        ip: localhost
+        filepath: /home/k/src/nsplay/vexille.mp4
+    # host2: 
+    #     port: "4000"
+    #     ip: 192.168.1.22
+    #     filepath: /home/school/school/files/2_SCHOOL_SHORT.mkv
+    # host3: 
+    #     port: "4000"
+    #     ip: 192.168.1.23
+    #     filepath: /home/school/school/files/3_SCHOOL_SHORT.mkv
+    # host4: 
+    #     port: "4000"
+    #     ip: 192.168.1.24
+    #     filepath: /home/school/school/files/4_SCHOOL_SHORT.mkv
+    # host5: 
+    #     port: "4000"
+    #     ip: 192.168.1.25
+    #     filepath: /home/school/school/files/5_SCHOOL_SHORT.mkv
+    # host7: 
+    #     port: "4000"
+    #     ip: 192.168.1.27
+    #     filepath: /home/school/school/files/7_SCHOOL_SHORT.mkv
