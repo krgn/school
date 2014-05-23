@@ -25,7 +25,7 @@ main = withSocketsDo $ do
     setSocketOption sock ReuseAddr 1
     setSocketOption sock ReusePort 1
 
-    bindSocket sock (SockAddrInet 4001 iNADDR_ANY)
+    bindSocket sock (addrAddress serveraddr)
     listen sock 1
 
     let cmd = foldr (\ a b -> a ++ " " ++ b) "" l
