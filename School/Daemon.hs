@@ -3,13 +3,11 @@
 module School.Daemon where
 
 import System.IO
+import System.Exit
 import System.Process
-import System.Posix.Files
 import Network.Socket hiding (recv)
 import Network.Socket.ByteString 
 import Control.Concurrent
-import qualified Data.ByteString.Char8 as C
-import Data.String.Utils
 import School.Time
 import School.Network
 
@@ -23,7 +21,11 @@ main = withSocketsDo $ do
     addrinfos <- getAddrInfo Nothing (Just "0.0.0.0") (Just "4000")
     let serveraddr = head addrinfos
     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
-    bindSocket sock (addrAddress serveraddr)
+
+    setSocketOption sock ReuseAddr 1
+    setSocketOption sock ReusePort 1
+
+    bindSocket sock (SockAddrInet 4001 iNADDR_ANY)
     listen sock 1
 
     let cmd = foldr (\ a b -> a ++ " " ++ b) "" l
@@ -48,17 +50,17 @@ main = withSocketsDo $ do
 
     putStrLn "listening for commands"
     loop sock hand
-    putStrLn "done.. commands"
 
     -- closing everything down
+    shutdown sock ShutdownBoth 
     sClose sock
+
     terminateProcess pid
     waitForProcess pid
-    return ()
+    exitSuccess
 
     where 
         prepareHandle h = do
-            putStrLn "initializing handle"   
             hSetBinaryMode h False 
             hSetBuffering h LineBuffering   
 
@@ -68,25 +70,24 @@ main = withSocketsDo $ do
             emptyHandle debug o
 
 
+loop :: Socket -> Handle -> IO ()
 loop sock hand = do 
     (conn, _) <- accept sock
     str <- recv conn 4096
-    
+    sClose conn
+
     msg <- parseMessage str
      
-    withDelay hand msg
-
-    sClose conn
-    loop sock hand
+    if snd msg == "quit"
+        then return ()
+        else do forkIO $ withDelay hand msg 
+                loop sock hand
 
     where  
         withDelay :: Handle -> (Int, String) -> IO ()
         withDelay h (delay,cmd) = do
-            putStrLn $ "delay command by: " ++ show delay
             threadDelay delay
-            putStrLn $ "writing command " ++ cmd
             -- write command to handler
             hPutStrLn h cmd
             hFlush h
-            putStrLn "done writing command"
 
