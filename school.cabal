@@ -5,12 +5,9 @@ Build-Depends: network
                , base
                , gtk
                , unix-time
-               , time
                , glade
                , process
                , bytestring
-               , timers
-               , suspend
                , aeson
                , unix
                , yaml-config
