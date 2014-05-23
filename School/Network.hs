@@ -11,6 +11,9 @@ import System.IO.Error
 import Data.String.Utils (strip)
 import qualified Data.ByteString.Char8 as C
 
+restartAll :: [Host] -> IO ()
+restartAll = mapM_ (sendMessage "quit") 
+
 startAll :: [Host] -> IO ()
 startAll = mapM_ (void . start) 
     where 

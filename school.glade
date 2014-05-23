@@ -35,6 +35,23 @@
                       </widget>
                     </child>
                     <child>
+                      <widget class="GtkImageMenuItem" id="resetButton">
+                        <property name="label">Reset All</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <property name="use_stock">False</property>
+                        <child internal-child="image">
+                          <widget class="GtkImage" id="image1">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="xpad">2</property>
+                            <property name="stock">gtk-dialog-warning</property>
+                          </widget>
+                        </child>
+                      </widget>
+                    </child>
+                    <child>
                       <widget class="GtkImageMenuItem" id="quitButton">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
@@ -106,6 +123,7 @@
               <widget class="GtkButton" id="stopButton">
                 <property name="label">gtk-media-stop</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
@@ -210,6 +228,7 @@
             <child>
               <widget class="GtkLabel" id="statusView">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">&lt;span  font='50' font_weight='heavy'&gt;00:00:00&lt;/span&gt;
 </property>

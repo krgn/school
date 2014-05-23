@@ -29,6 +29,7 @@ data GUI = GUI {
         quitBtn :: MenuItem,
         aboutBtn :: MenuItem,
         refreshBtn :: MenuItem, 
+        resetBtn :: MenuItem, 
 
         statusView :: Label,
         progBar :: ProgressBar
@@ -62,7 +63,8 @@ loadGlade gladepath =
        jteBtn <- xmlGetWidget xml castToButton "jumpToEnd"
        qBtn   <- xmlGetWidget xml castToMenuItem "quitButton"
        aBtn   <- xmlGetWidget xml castToMenuItem "aboutDialog"
-       reBtn   <- xmlGetWidget xml castToMenuItem "refreshButton"
+       reBtn  <- xmlGetWidget xml castToMenuItem "refreshButton"
+       rsBtn  <- xmlGetWidget xml castToMenuItem "resetButton"
        sView  <- xmlGetWidget xml castToLabel "statusView"
        pBar   <- xmlGetWidget xml castToProgressBar "showProgress"
 
@@ -77,6 +79,7 @@ loadGlade gladepath =
                , quitBtn         = qBtn
                , aboutBtn        = aBtn
                , refreshBtn      = reBtn
+               , resetBtn        = rsBtn
                , statusView      = sView
                , progBar         = pBar 
            }
@@ -106,16 +109,29 @@ connectGui a = do
     on (quitBtn gui) menuItemActivate mainQuit
 
     on (refreshBtn gui) menuItemActivate $ do
+        widgetSetSensitivity (playBtn gui) True
+        widgetSetSensitivity (stopBtn gui) False
         stop hosts thread
         curr <- readIORef app
         newCfg <- readConfig
         writeIORef app $ curr { appCfg=newCfg }
 
+    on (resetBtn gui) menuItemActivate $ do
+        widgetSetSensitivity (playBtn gui) True
+        widgetSetSensitivity (stopBtn gui) False
+        stop hosts thread
+        restartAll hosts
+
     onClicked (playBtn gui) $ do
+        widgetSetSensitivity (playBtn gui) False
+        widgetSetSensitivity (stopBtn gui) True
         thId <- forkIO $ waitingTask osd 0 app
         writeIORef thread (Just thId)
         
-    onClicked (stopBtn gui) $ stop hosts thread
+    onClicked (stopBtn gui) $ do
+        widgetSetSensitivity (playBtn gui) True
+        widgetSetSensitivity (stopBtn gui) False
+        stop hosts thread
 
     onClicked (verboseBtn gui) $
         void $ forkIO $ do 
@@ -156,8 +172,9 @@ stop hosts thread = do
     thId <- readIORef thread
     case thId of
         Nothing -> putStrLn "oh, no ThreadId found!"
-        Just i -> do killThread i
-                     writeIORef thread Nothing 
+        Just i  -> do killThread i
+                      writeIORef thread Nothing 
+
 
 updateProgrss :: Int -> IORef App -> IO ()
 updateProgrss i app = do
