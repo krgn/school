@@ -21,6 +21,12 @@ startAll = mapM_ (void . start)
             let cmd = "loadfile " ++ getFilePath host
             void $ sendMessage cmd host
 
+setVolume :: Int -> [Host] -> IO ()
+setVolume vol = mapM_ (void . volume vol)
+    where
+        volume v host = do 
+            let cmd = "volume " ++ show v  ++ " 1"
+            void $ sendMessage cmd host
 
 stopAll :: [Host] -> IO ()
 stopAll = mapM_ (void . stop) 

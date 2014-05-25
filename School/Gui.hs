@@ -18,21 +18,23 @@ data App = App {
     }
 
 data GUI = GUI {
-        mainWin :: Window, 
-        playBtn :: Button,
-        stopBtn :: Button,
-        verboseBtn :: Button,
-        jumpToStartBtn :: Button,
+        mainWin         :: Window,
+
+        playBtn         :: Button,
+        stopBtn         :: Button,
+        verboseBtn      :: Button,
+        jumpToStartBtn  :: Button,
         jumpToMiddleBtn :: Button,
-        jumpToEndBtn :: Button,
+        jumpToEndBtn    :: Button,
 
-        quitBtn :: MenuItem,
-        aboutBtn :: MenuItem,
-        refreshBtn :: MenuItem, 
-        resetBtn :: MenuItem, 
+        quitBtn         :: MenuItem,
+        aboutBtn        :: MenuItem,
+        refreshBtn      :: MenuItem,
+        resetBtn        :: MenuItem,
 
-        statusView :: Label,
-        progBar :: ProgressBar
+        statusView      :: Label,
+        progBar         :: ProgressBar,
+        volumeButton    :: Scale
     }
 
 
@@ -67,6 +69,7 @@ loadGlade gladepath =
        rsBtn  <- xmlGetWidget xml castToMenuItem "resetButton"
        sView  <- xmlGetWidget xml castToLabel "statusView"
        pBar   <- xmlGetWidget xml castToProgressBar "showProgress"
+       vBtn   <- xmlGetWidget xml castToScale "volumeScale"
 
        return  GUI { 
                mainWin           = mw
@@ -82,6 +85,7 @@ loadGlade gladepath =
                , resetBtn        = rsBtn
                , statusView      = sView
                , progBar         = pBar 
+               , volumeButton    = vBtn
            }
 
 
@@ -122,16 +126,17 @@ connectGui a = do
         stop hosts thread
         restartAll hosts
 
+    on (volumeButton gui) valueChanged $ do
+        val <- rangeGetValue (volumeButton gui)
+        setVolume (truncate val) hosts 
+
     onClicked (playBtn gui) $ do
         widgetSetSensitivity (playBtn gui) False
         widgetSetSensitivity (stopBtn gui) True
         thId <- forkIO $ waitingTask osd 0 app
         writeIORef thread (Just thId)
         
-    onClicked (stopBtn gui) $ do
-        widgetSetSensitivity (playBtn gui) True
-        widgetSetSensitivity (stopBtn gui) False
-        stop hosts thread
+    onClicked (stopBtn gui) $ onStop gui hosts thread
 
     onClicked (verboseBtn gui) $
         void $ forkIO $ do 
@@ -164,6 +169,13 @@ connectGui a = do
 
             threadDelay 1000000
             waitingTask o ((i + 1) `mod` duration) a
+
+
+onStop :: GUI -> [Host] -> IORef (Maybe ThreadId) -> IO ()
+onStop gui hosts thread = do
+    widgetSetSensitivity (playBtn gui) True
+    widgetSetSensitivity (stopBtn gui) False
+    stop hosts thread
 
 
 stop :: [Host] -> IORef (Maybe ThreadId) -> IO ()

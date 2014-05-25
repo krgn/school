@@ -8,6 +8,7 @@ import System.Process
 import Network.Socket hiding (recv)
 import Network.Socket.ByteString 
 import Control.Concurrent
+import Control.Monad (unless)
 import School.Time
 import School.Network
 
@@ -78,15 +79,14 @@ loop sock hand = do
 
     msg <- parseMessage str
      
-    if snd msg == "quit"
-        then return ()
-        else do forkIO $ withDelay hand msg 
-                loop sock hand
+    unless (snd msg == "quit") $ do
+        forkIO $ withDelay hand msg 
+        loop sock hand
 
     where  
         withDelay :: Handle -> (Int, String) -> IO ()
         withDelay h (delay,cmd) = do
-            threadDelay delay
+            -- threadDelay delay
             -- write command to handler
             hPutStrLn h cmd
             hFlush h
