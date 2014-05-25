@@ -14,6 +14,7 @@ import qualified Data.ByteString.Char8 as C
 restartAll :: [Host] -> IO ()
 restartAll = mapM_ (sendMessage "quit") 
 
+
 startAll :: [Host] -> IO ()
 startAll = mapM_ (void . start) 
     where 
@@ -21,12 +22,24 @@ startAll = mapM_ (void . start)
             let cmd = "loadfile " ++ getFilePath host
             void $ sendMessage cmd host
 
+
 setVolume :: Int -> [Host] -> IO ()
 setVolume vol = mapM_ (void . volume vol)
     where
         volume v host = do 
             let cmd = "volume " ++ show v  ++ " 1"
             void $ sendMessage cmd host
+
+
+pauseAll :: [Host] -> IO ()
+pauseAll = mapM_ (void . pause) 
+    where 
+        pause host = do
+            let cmd = "pause"
+            void $ sendMessage cmd host
+
+resumeAll :: [Host] -> IO ()
+resumeAll = pauseAll
 
 stopAll :: [Host] -> IO ()
 stopAll = mapM_ (void . stop) 

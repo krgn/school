@@ -1,5 +1,5 @@
 global: 
-    duration: 12
+    duration: 120
     latency: 3000
 
 servers:

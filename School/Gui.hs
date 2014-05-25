@@ -9,33 +9,9 @@ import Data.IORef
 import School.Config
 import School.Time
 import School.Network
+import School.Types
 import Text.Printf
 import Control.Monad
-
-data App = App {
-        appGui :: GUI,
-        appCfg :: SchoolConfig
-    }
-
-data GUI = GUI {
-        mainWin         :: Window,
-
-        playBtn         :: Button,
-        stopBtn         :: Button,
-        verboseBtn      :: Button,
-        jumpToStartBtn  :: Button,
-        jumpToMiddleBtn :: Button,
-        jumpToEndBtn    :: Button,
-
-        quitBtn         :: MenuItem,
-        aboutBtn        :: MenuItem,
-        refreshBtn      :: MenuItem,
-        resetBtn        :: MenuItem,
-
-        statusView      :: Label,
-        progBar         :: ProgressBar,
-        volumeButton    :: Scale
-    }
 
 
 main :: FilePath -> IO ()
@@ -58,6 +34,7 @@ loadGlade gladepath =
        -- the main window
        mw     <- xmlGetWidget xml castToWindow "mainWindow"
        pBtn   <- xmlGetWidget xml castToButton "playButton"
+       paBtn  <- xmlGetWidget xml castToButton "pauseButton"
        sBtn   <- xmlGetWidget xml castToButton "stopButton"
        rBtn   <- xmlGetWidget xml castToButton "verboseButton"
        jtsBtn <- xmlGetWidget xml castToButton "jumpToStart"
@@ -74,6 +51,7 @@ loadGlade gladepath =
        return  GUI { 
                mainWin           = mw
                , playBtn         = pBtn
+               , pauseBtn        = paBtn
                , stopBtn         = sBtn
                , verboseBtn      = rBtn
                , jumpToStartBtn  = jtsBtn
@@ -89,59 +67,42 @@ loadGlade gladepath =
            }
 
 
-threadRef :: IO (IORef (Maybe ThreadId))
-threadRef = newIORef Nothing
-
-osdRef :: IO (IORef Bool)
-osdRef = newIORef False
-
-appRef :: App -> IO (IORef App)
-appRef = newIORef
-
 connectGui :: App -> IO () 
 connectGui a = do 
-    thread <- threadRef 
-    osd <- osdRef
-    app <- appRef a
+    appState <- newAppState a
 
-    -- or, liftM (getHosts . appCfg) (readIORef app)
-    hosts <- readIORef app >>= return . getHosts . appCfg
-    gui <- readIORef app >>= return . appGui
+    hosts <- getAllHosts appState
+    gui   <- getGui appState
 
     onDestroy (mainWin gui) mainQuit
 
     on (quitBtn gui) menuItemActivate mainQuit
 
+    -- re-read the config file
     on (refreshBtn gui) menuItemActivate $ do
-        widgetSetSensitivity (playBtn gui) True
-        widgetSetSensitivity (stopBtn gui) False
-        stop hosts thread
-        curr <- readIORef app
+        stop appState 
+        curr <- getApp appState
         newCfg <- readConfig
-        writeIORef app $ curr { appCfg=newCfg }
+        setApp curr { appCfg=newCfg } appState 
 
+    -- tell all players to restart 
     on (resetBtn gui) menuItemActivate $ do
-        widgetSetSensitivity (playBtn gui) True
-        widgetSetSensitivity (stopBtn gui) False
-        stop hosts thread
+        stop appState
         restartAll hosts
 
+    -- change the volume on all players
     on (volumeButton gui) valueChanged $ do
         val <- rangeGetValue (volumeButton gui)
         setVolume (truncate val) hosts 
 
-    onClicked (playBtn gui) $ do
-        widgetSetSensitivity (playBtn gui) False
-        widgetSetSensitivity (stopBtn gui) True
-        thId <- forkIO $ waitingTask osd 0 app
-        writeIORef thread (Just thId)
-        
-    onClicked (stopBtn gui) $ onStop gui hosts thread
+    onClicked (playBtn gui) $ play appState
+    onClicked (pauseBtn gui) $ pause appState
+    onClicked (stopBtn gui) $ stop appState
 
     onClicked (verboseBtn gui) $
         void $ forkIO $ do 
-            toggleOsd osd
-            showTimecode osd hosts
+            toggleOsd $ osdRef appState
+            showTimecode (osdRef appState) hosts
 
     onClicked (jumpToStartBtn gui) $
         void $ forkIO $ seekTo 0 hosts
@@ -154,52 +115,108 @@ connectGui a = do
             
     return ()
 
+
+stop :: AppState -> IO ()
+stop state = do 
+    hosts <- getAllHosts state
+    thread <- getThreadId state
+    gui    <- getGui state
+
+    widgetSetSensitivity (playBtn gui)  True
+    widgetSetSensitivity (pauseBtn gui) False
+    widgetSetSensitivity (stopBtn gui)  False
+
+    forkIO $ stopAll hosts
+    case thread of
+        Just tid -> do killThread tid
+                       setThreadId Nothing state
+                       setCount 0 state
+                       setPaused False state
+                       resetWidgets state
+        Nothing  -> return ()
+
+
+pause :: AppState -> IO ()
+pause state = do
+    hosts <- getAllHosts state
+    thread <- getThreadId state
+    gui    <- getGui state
+         
+    widgetSetSensitivity (playBtn gui)  True
+    widgetSetSensitivity (pauseBtn gui) False
+    widgetSetSensitivity (stopBtn gui)  True
+
+    case thread of
+        Just tid -> do killThread tid
+                       setThreadId Nothing state
+                       pauseAll hosts
+                       setPaused True state
+        Nothing  -> return ()
+
+
+play :: AppState -> IO ()
+play state = do
+    gui <- getGui state
+
+    widgetSetSensitivity (playBtn gui)  False
+    widgetSetSensitivity (pauseBtn gui) True
+    widgetSetSensitivity (stopBtn gui)  True
+
+    tid <- forkIO $ waitingTask state
+    setThreadId (Just tid) state
+
     where 
-        waitingTask :: IORef Bool -> Int -> IORef App -> IO ()
-        waitingTask o i a = do 
-            hosts <- liftM (getHosts . appCfg) (readIORef a)
-            duration <- liftM (fromIntegral . getDuration . appCfg) (readIORef a)
+        waitingTask :: AppState -> IO ()
+        waitingTask state = do 
+            hosts    <- getAllHosts state
+            app      <- getApp state
+            count    <- getCount state
+            paused   <- getPaused state
 
-            postGUIAsync $ updateTimecode i a
-            postGUIAsync $ updateProgrss i a
+            let duration = fromIntegral $ getDuration $ appCfg app
 
-            when (i == 0) $ do 
-                startAll hosts
-                showTimecode o hosts
+            postGUIAsync $ updateTimecode count app 
+            postGUIAsync $ updateProgress count app
+
+            if count == 0
+                then do osd <- getOsd state
+                        startAll hosts
+                        showTimecode (osdRef state) hosts
+                else when paused $ do 
+                    resumeAll hosts
+                    setPaused False state
+                        
+
 
             threadDelay 1000000
-            waitingTask o ((i + 1) `mod` duration) a
+
+            setCount ((count + 1) `mod` duration) state
+
+            waitingTask state
 
 
-onStop :: GUI -> [Host] -> IORef (Maybe ThreadId) -> IO ()
-onStop gui hosts thread = do
-    widgetSetSensitivity (playBtn gui) True
-    widgetSetSensitivity (stopBtn gui) False
-    stop hosts thread
+resetWidgets :: AppState -> IO ()
+resetWidgets state = do 
+    app <- getApp state
+    let bar   = progBar    $ appGui app
+    let label = statusView $ appGui app
+
+    labelSetMarkup label "<span font='50' font_weight='heavy'>00:00:00</span>" 
+    progressBarSetFraction bar 0
 
 
-stop :: [Host] -> IORef (Maybe ThreadId) -> IO ()
-stop hosts thread = do 
-    forkIO $ stopAll hosts
-    thId <- readIORef thread
-    case thId of
-        Nothing -> putStrLn "oh, no ThreadId found!"
-        Just i  -> do killThread i
-                      writeIORef thread Nothing 
-
-
-updateProgrss :: Int -> IORef App -> IO ()
-updateProgrss i app = do
-    bar <- liftM (progBar . appGui) (readIORef app)
-    duration <- liftM (fromIntegral . getDuration . appCfg) (readIORef app)
+updateProgress :: Int -> App -> IO ()
+updateProgress i app = do
+    let bar  = progBar $ appGui app
+    let duration = fromIntegral $ getDuration $ appCfg app
     let total = (1.0 /  duration) * fromIntegral i
 
     progressBarSetFraction bar total
 
 
-updateTimecode :: Int -> IORef App -> IO ()
+updateTimecode :: Int -> App -> IO ()
 updateTimecode i app = do
-    label <- liftM (statusView . appGui) (readIORef app)
+    let label = statusView $ appGui app
     labelSetMarkup label str
     
     where
